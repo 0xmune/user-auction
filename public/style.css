@@ -231,17 +231,17 @@ button {
 .hint { color: var(--muted); font-size: 0.8rem; }
 .mono { font-family: monospace; color: var(--gold); }
 
-.pool-list { list-style: none; padding: 0; margin: 10px 0; max-height: 240px; overflow-y: auto; }
+.pool-list { list-style: none; padding: 0; margin: 10px 0; max-height: 280px; overflow-y: auto; }
 .pool-list li {
   display: flex;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: var(--panel2);
   border-left: 2px solid var(--border);
   margin-bottom: 6px;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
-.pool-list.small li { font-size: 0.85rem; padding: 6px 10px; }
+.pool-list.small li { font-size: 1rem; padding: 9px 12px; }
 .pool-list li.sold { color: var(--ok); border-left-color: var(--ok); }
 .pool-list li.unsold { color: var(--danger); border-left-color: var(--danger); }
 .pool-list li.active { border-left-color: var(--gold); color: var(--gold-bright); }
@@ -249,8 +249,8 @@ button {
 .pool-list button {
   background: transparent;
   color: var(--danger);
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  padding: 3px 10px;
+  font-size: 0.85rem;
 }
 
 /* ---- 모드 토글 (오픈/블라인드) ---- */
@@ -298,21 +298,24 @@ button {
   padding: 14px;
   border: 1px solid var(--border);
   border-top: 3px solid var(--border);
+  outline: 2px solid transparent;
+  outline-offset: -1px;
+  transition: outline-color 0.25s ease, border-top-color 0.25s ease, box-shadow 0.25s ease;
 }
 .team-card.side-blue { border-top-color: var(--blue); }
 .team-card.side-red { border-top-color: var(--red); }
 .team-card.leading {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 1px var(--gold), 0 0 16px rgba(200,170,110,0.25);
+  outline-color: var(--gold);
+  box-shadow: 0 0 16px rgba(200,170,110,0.25);
 }
-.team-card h3 { margin: 0 0 6px; font-size: 0.95rem; color: var(--gold-bright); letter-spacing: 0.5px; }
-.team-card .leader { color: var(--muted); font-size: 0.78rem; }
-.team-card .points { font-size: 1.1rem; font-weight: 700; color: var(--gold); margin: 8px 0; font-variant-numeric: tabular-nums; }
-.team-card ul { list-style: none; padding: 0; margin: 8px 0 0; font-size: 0.82rem; }
+.team-card h3 { margin: 0 0 6px; font-size: 1.15rem; color: var(--gold-bright); letter-spacing: 0.5px; }
+.team-card .leader { color: var(--muted); font-size: 0.9rem; }
+.team-card .points { font-size: 1.3rem; font-weight: 700; color: var(--gold); margin: 8px 0; font-variant-numeric: tabular-nums; }
+.team-card ul { list-style: none; padding: 0; margin: 8px 0 0; font-size: 0.95rem; }
 .team-card ul li {
   display: flex;
   justify-content: space-between;
-  padding: 4px 6px;
+  padding: 6px 8px;
   color: var(--text);
   background: rgba(255,255,255,0.03);
   margin-bottom: 3px;
@@ -355,20 +358,20 @@ button {
 
 .progress-label {
   color: var(--gold);
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   margin-bottom: 10px;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
 .current-card h2 {
-  font-size: 2.1rem;
+  font-size: 2.8rem;
   margin: 0 0 18px;
   color: var(--gold-bright);
   letter-spacing: 1px;
   text-shadow: 0 2px 8px rgba(0,0,0,0.6);
 }
-.bid-info { display: flex; justify-content: center; gap: 48px; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-.big-num { display: block; font-size: 1.5rem; color: var(--gold); font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.bid-info { display: flex; justify-content: center; gap: 48px; font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.big-num { display: block; font-size: 2rem; color: var(--gold); font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .timer {
   display: flex;
   align-items: center;
@@ -460,9 +463,9 @@ button {
   margin-bottom: 14px;
 }
 .player-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.meta-inline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
-.roster-count { color: var(--muted); font-size: 0.8rem; font-weight: 400; margin-left: 6px; }
-.player-meta { color: var(--gold); font-size: 0.85rem; margin-bottom: 10px; letter-spacing: 0.5px; }
+.meta-inline { color: var(--muted); font-size: 0.9rem; font-weight: 400; }
+.roster-count { color: var(--muted); font-size: 0.9rem; font-weight: 400; margin-left: 6px; }
+.player-meta { color: var(--gold); font-size: 1.1rem; margin-bottom: 10px; letter-spacing: 0.5px; }
 
 @media (max-width: 640px) {
   .player-form-row { grid-template-columns: 1fr; }

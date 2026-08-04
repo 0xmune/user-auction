@@ -121,10 +121,12 @@ $('createRoomBtn').onclick = () => {
     antiSnipeReset: Number($('timerReset').value) || 10,
   };
   const maxTeamSize = Number($('maxTeamSize').value) || 5;
+  const bgmUrl = $('createBgmUrl').value.trim();
 
+  armAutoplayGesture();
   socket.emit(
     'createRoom',
-    { teams, poolOrder, timerSettings, mode: selectedMode, maxTeamSize, initialPlayers: draftPool },
+    { teams, poolOrder, timerSettings, mode: selectedMode, maxTeamSize, initialPlayers: draftPool, bgmUrl },
     (res) => {
       if (res.error) {
         $('createError').textContent = res.error;
@@ -145,6 +147,7 @@ $('leaderJoinBtn').onclick = () => {
   $('leaderJoinError').textContent = '';
   const code = $('leaderJoinCode').value.trim();
   const nickname = $('leaderJoinNickname').value.trim();
+  armAutoplayGesture();
   socket.emit('joinRoom', { code, nickname, intent: 'leader' }, (res) => {
     if (res.error) {
       $('leaderJoinError').textContent = res.error;
@@ -163,6 +166,7 @@ $('spectatorJoinBtn').onclick = () => {
   $('spectatorJoinError').textContent = '';
   const code = $('spectatorJoinCode').value.trim();
   const nickname = $('spectatorJoinNickname').value.trim();
+  armAutoplayGesture();
   socket.emit('joinRoom', { code, nickname, intent: 'spectator' }, (res) => {
     if (res.error) {
       $('spectatorJoinError').textContent = res.error;
@@ -296,8 +300,16 @@ function render() {
   } else if (s.phase === 'finished') {
     showView('finished');
     renderTeams($('finalTeams'), s, null);
+    const hasUnsold = s.roster.some((p) => p.status === 'unsold');
+    $('requeueUnsoldBtn').classList.toggle('hidden', !(myRole === 'host' && hasUnsold));
   }
 }
+
+$('requeueUnsoldBtn').onclick = () => {
+  socket.emit('requeueUnsold', {}, (res) => {
+    if (res && res.error) alert(res.error);
+  });
+};
 
 function playerMetaText(p) {
   const parts = [];
@@ -338,8 +350,8 @@ function renderTeams(container, s, leadingTeamId) {
     div.className = 'team-card' + (t.id === leadingTeamId ? ' leading' : '');
     div.style.borderTopColor = t.color;
     if (t.id === leadingTeamId) {
-      div.style.boxShadow = `0 0 0 1px ${t.color}, 0 0 16px ${t.color}66`;
-      div.style.borderColor = t.color;
+      div.style.outlineColor = t.color;
+      div.style.boxShadow = `0 0 16px ${t.color}66`;
     }
     const membersHtml = t.members
       .map((m) => {
@@ -465,6 +477,14 @@ let ytApiReady = false;
 let ytLoadedVideoId = null;
 let pendingBgmState = null;
 let soundOn = false;
+let autoplayGestureArmed = false;
+
+// 방 생성/입장 버튼 클릭 자체가 사용자 제스처이므로, 그 직후 도착하는 BGM 상태는
+// 음소거 없이 바로 재생을 시도한다 (브라우저 자동재생 정책 우회).
+function armAutoplayGesture() {
+  autoplayGestureArmed = true;
+  ensureDingAudioCtx();
+}
 
 window.onYouTubeIframeAPIReady = () => {
   ytApiReady = true;
@@ -500,6 +520,12 @@ function applyBgmState(bgm) {
 
   if (ytLoadedVideoId !== track.videoId) {
     ytLoadedVideoId = track.videoId;
+    if (autoplayGestureArmed && bgm.isPlaying) {
+      autoplayGestureArmed = false;
+      soundOn = true;
+      ytPlayer.unMute();
+      $('bgmSoundBtn').textContent = '🔊 소리 끄기';
+    }
     ytPlayer.loadVideoById({ videoId: track.videoId, startSeconds: targetPos });
     if (!bgm.isPlaying) setTimeout(() => ytPlayer.pauseVideo(), 300);
     return;
@@ -596,16 +622,21 @@ document.addEventListener('click', () => ensureDingAudioCtx(), { once: true });
 function playDing() {
   const ctx = ensureDingAudioCtx();
   const now = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(1046.5, now); // C6
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.35, now + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start(now);
-  osc.stop(now + 0.45);
+  // 신나는 상승 아르페지오 (C6-E6-G6-C7) + 밝은 트라이앵글 파형
+  const notes = [1046.5, 1318.5, 1568.0, 2093.0];
+  notes.forEach((freq, i) => {
+    const t0 = now + i * 0.06;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.3, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.3);
+  });
 }
 
 let prevBid = { playerId: null, amount: 0 };

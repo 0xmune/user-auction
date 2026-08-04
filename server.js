@@ -99,7 +99,7 @@ function normalizePlayer(p) {
   };
 }
 
-function createRoom({ teams, poolOrder, timerSettings, mode, maxTeamSize, initialPlayers }) {
+function createRoom({ teams, poolOrder, timerSettings, mode, maxTeamSize, initialPlayers, bgmUrl }) {
   const code = genRoomCode();
   const room = {
     code,
@@ -132,6 +132,16 @@ function createRoom({ teams, poolOrder, timerSettings, mode, maxTeamSize, initia
       updatedAt: Date.now(), // position이 기록된 시각
     },
   };
+
+  const initialVideoId = parseYoutubeId(bgmUrl);
+  if (initialVideoId) {
+    const track = { id: genId(), videoId: initialVideoId, title: initialVideoId };
+    room.bgm.playlist.push(track);
+    room.bgm.currentTrackId = track.id;
+    room.bgm.isPlaying = true;
+    room.bgm.updatedAt = Date.now();
+  }
+
   rooms.set(code, room);
   return room;
 }
@@ -289,7 +299,7 @@ function advanceToNext(room, autoStart) {
 }
 
 io.on('connection', (socket) => {
-  socket.on('createRoom', ({ teams, poolOrder, timerSettings, mode, maxTeamSize, initialPlayers }, cb) => {
+  socket.on('createRoom', ({ teams, poolOrder, timerSettings, mode, maxTeamSize, initialPlayers, bgmUrl }, cb) => {
     try {
       if (!Array.isArray(teams) || teams.length < MIN_TEAMS || teams.length > MAX_TEAMS) {
         return cb({ error: `팀은 ${MIN_TEAMS}~${MAX_TEAMS}개 사이여야 합니다.` });
@@ -297,7 +307,7 @@ io.on('connection', (socket) => {
       for (const t of teams) {
         if (!t.name || !t.leaderNickname) return cb({ error: '팀 이름과 팀장 닉네임을 모두 입력하세요.' });
       }
-      const room = createRoom({ teams, poolOrder, timerSettings, mode, maxTeamSize, initialPlayers });
+      const room = createRoom({ teams, poolOrder, timerSettings, mode, maxTeamSize, initialPlayers, bgmUrl });
       room.hostSocketId = socket.id;
       socket.join(room.code);
       socket.data.roomCode = room.code;
@@ -394,6 +404,23 @@ io.on('connection', (socket) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });
     if (room.current) finalizeCurrent(room);
+    advanceToNext(room, true);
+    cb && cb({ ok: true });
+  });
+
+  // 유찰된 선수들만 모아 다시 경매 진행 (전체 순서를 다 돌고 난 뒤에도 호출 가능)
+  socket.on('requeueUnsold', (_, cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });
+    const unsold = room.pool.filter((p) => p.status === 'unsold');
+    if (unsold.length === 0) return cb && cb({ error: '유찰된 선수가 없습니다.' });
+    unsold.forEach((p) => {
+      p.status = 'pending';
+    });
+    const ids = unsold.map((p) => p.id);
+    room.order = room.poolOrder === 'random' ? shuffle(ids) : ids;
+    room.auctionIndex = -1;
+    room.phase = 'bidding';
     advanceToNext(room, true);
     cb && cb({ ok: true });
   });
