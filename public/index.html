@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>User Auction</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1>🏆 User Auction</h1>
+    <div id="roomBadge" class="room-badge hidden"></div>
+  </header>
+
+  <!-- HOME: 최초 선택 화면 -->
+  <section id="view-home" class="view">
+    <div class="choice-row">
+      <button id="gotoCreateBtn" class="choice-card">
+        <div class="choice-icon">🛠️</div>
+        <div class="choice-title">경매장 생성</div>
+        <div class="choice-desc">방장으로 새 경매방을 만듭니다</div>
+      </button>
+      <button id="gotoJoinBtn" class="choice-card">
+        <div class="choice-icon">🚪</div>
+        <div class="choice-title">경매장 입장</div>
+        <div class="choice-desc">방 코드로 기존 경매방에 참가합니다</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- CREATE ROOM: 경매장 옵션 설정 -->
+  <section id="view-create" class="view hidden">
+    <div class="card">
+      <button class="back-btn" data-back="home">← 뒤로</button>
+      <h2>경매장 생성</h2>
+      <label>경매 목록 순서
+        <select id="poolOrder">
+          <option value="input">입력 순서대로</option>
+          <option value="random">랜덤</option>
+        </select>
+      </label>
+
+      <label>경매 모드</label>
+      <div class="mode-toggle" id="modeToggle">
+        <button type="button" class="mode-option selected" data-mode="open">
+          <div class="mode-name">오픈</div>
+          <div class="mode-desc">참가자에게 남은 경매 목록 순서가 공개됩니다</div>
+        </button>
+        <button type="button" class="mode-option" data-mode="blind">
+          <div class="mode-name">블라인드</div>
+          <div class="mode-desc">현재 진행중인 선수만 보이고, 남은 목록/순서는 방장에게만 공개됩니다</div>
+        </button>
+      </div>
+
+      <label>팀당 최대 낙찰 인원
+        <input id="maxTeamSize" type="number" min="1" max="20" value="5" />
+      </label>
+
+      <div class="timer-settings">
+        <div class="timer-title">⏱ 타이머 설정</div>
+        <div class="timer-row">
+          <label>제한시간(초)
+            <input id="timerTotal" type="number" min="5" max="600" value="60" />
+          </label>
+          <label>연장 기준(초 미만)
+            <input id="timerThreshold" type="number" min="0" max="300" value="10" />
+          </label>
+          <label>연장 시 남는 시간(초)
+            <input id="timerReset" type="number" min="1" max="300" value="10" />
+          </label>
+        </div>
+        <p class="hint">예: 60초 중 10초 미만일 때 상위 입찰이 들어오면 남은 시간이 10초로 재설정됩니다.</p>
+      </div>
+
+      <div id="teamRows"></div>
+      <div class="row-buttons">
+        <button id="addTeamBtn" class="secondary">+ 팀 추가</button>
+        <button id="removeTeamBtn" class="secondary">- 팀 제거</button>
+      </div>
+
+      <label>경매 목록</label>
+      <div class="player-form">
+        <div class="player-form-row">
+          <label>닉네임
+            <input id="draftPlayerName" type="text" placeholder="예: 페이커" />
+          </label>
+          <label>티어
+            <select id="draftPlayerTier">
+              <option value="">미지정</option>
+              <option>아이언</option><option>브론즈</option><option>실버</option>
+              <option>골드</option><option>플래티넘</option><option>에메랄드</option>
+              <option>다이아몬드</option><option>마스터</option><option>그랜드마스터</option><option>챌린저</option>
+            </select>
+          </label>
+        </div>
+        <div class="player-form-row">
+          <label>메인 포지션
+            <select id="draftPlayerMainPos">
+              <option value="">미지정</option>
+              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
+            </select>
+          </label>
+          <label>서브 포지션
+            <select id="draftPlayerSubPos">
+              <option value="">미지정</option>
+              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
+            </select>
+          </label>
+        </div>
+        <label>한마디
+          <input id="draftPlayerComment" type="text" placeholder="예: 캐리 보장합니다" />
+        </label>
+        <button id="draftAddPoolBtn" type="button" class="secondary">목록에 추가</button>
+        <p id="draftAddPoolError" class="error"></p>
+      </div>
+      <ul id="draftPoolList" class="pool-list"></ul>
+
+      <button id="createRoomBtn" class="primary big">경매장 생성</button>
+      <p id="createError" class="error"></p>
+    </div>
+  </section>
+
+  <!-- JOIN CHOICE: 팀장 / 관전 선택 -->
+  <section id="view-join-choice" class="view hidden">
+    <button class="back-btn" data-back="home">← 뒤로</button>
+    <div class="choice-row">
+      <button id="gotoLeaderJoinBtn" class="choice-card">
+        <div class="choice-icon">👑</div>
+        <div class="choice-title">팀장으로 입장</div>
+        <div class="choice-desc">방 코드 + 등록된 팀장 닉네임으로 입장</div>
+      </button>
+      <button id="gotoSpectatorJoinBtn" class="choice-card">
+        <div class="choice-icon">👀</div>
+        <div class="choice-title">관전하기</div>
+        <div class="choice-desc">방 코드만으로 바로 관전 입장</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- LEADER JOIN -->
+  <section id="view-leader-join" class="view hidden">
+    <div class="card">
+      <button class="back-btn" data-back="join-choice">← 뒤로</button>
+      <h2>팀장으로 입장</h2>
+      <label>방 코드
+        <input id="leaderJoinCode" type="text" placeholder="6자리 코드" maxlength="6" />
+      </label>
+      <label>팀장 닉네임
+        <input id="leaderJoinNickname" type="text" placeholder="방장이 등록한 팀장 닉네임과 동일하게" />
+      </label>
+      <button id="leaderJoinBtn" class="primary big">팀장으로 입장하기</button>
+      <p id="leaderJoinError" class="error"></p>
+    </div>
+  </section>
+
+  <!-- SPECTATOR JOIN -->
+  <section id="view-spectator-join" class="view hidden">
+    <div class="card">
+      <button class="back-btn" data-back="join-choice">← 뒤로</button>
+      <h2>관전하기</h2>
+      <label>방 코드
+        <input id="spectatorJoinCode" type="text" placeholder="6자리 코드" maxlength="6" />
+      </label>
+      <label>닉네임 (선택)
+        <input id="spectatorJoinNickname" type="text" placeholder="입력하지 않으면 자동으로 지정됩니다" />
+      </label>
+      <button id="spectatorJoinBtn" class="primary big">관전 입장하기</button>
+      <p id="spectatorJoinError" class="error"></p>
+    </div>
+  </section>
+
+  <!-- HOST SETUP (pool building) -->
+  <section id="view-setup" class="view hidden">
+    <div class="card">
+      <h2>경매 목록 관리 <span id="setupRoomCode" class="mono"></span></h2>
+      <div class="player-form">
+        <div class="player-form-row">
+          <label>닉네임
+            <input id="playerName" type="text" placeholder="예: 페이커" />
+          </label>
+          <label>티어
+            <select id="playerTier">
+              <option value="">미지정</option>
+              <option>아이언</option><option>브론즈</option><option>실버</option>
+              <option>골드</option><option>플래티넘</option><option>에메랄드</option>
+              <option>다이아몬드</option><option>마스터</option><option>그랜드마스터</option><option>챌린저</option>
+            </select>
+          </label>
+        </div>
+        <div class="player-form-row">
+          <label>메인 포지션
+            <select id="playerMainPos">
+              <option value="">미지정</option>
+              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
+            </select>
+          </label>
+          <label>서브 포지션
+            <select id="playerSubPos">
+              <option value="">미지정</option>
+              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
+            </select>
+          </label>
+        </div>
+        <label>한마디
+          <input id="playerComment" type="text" placeholder="예: 캐리 보장합니다" />
+        </label>
+        <button id="addPoolBtn" class="secondary">목록에 추가</button>
+        <p id="addPoolError" class="error"></p>
+      </div>
+      <ul id="poolList" class="pool-list"></ul>
+      <button id="startAuctionBtn" class="primary big">경매 시작</button>
+    </div>
+    <div class="card">
+      <h2>팀 현황</h2>
+      <div id="setupTeams" class="teams-grid"></div>
+    </div>
+  </section>
+
+  <!-- AUCTION (shared view for host/leader/spectator) -->
+  <section id="view-auction" class="view hidden">
+    <div class="auction-main">
+      <div class="current-card">
+        <div id="progressLabel" class="progress-label"></div>
+        <h2 id="currentPlayerName">-</h2>
+        <div id="currentPlayerMeta" class="player-meta"></div>
+        <div class="bid-info">
+          <div>현재 입찰가 <span id="currentBid" class="big-num">0</span>P</div>
+          <div>최고 입찰팀 <span id="currentTeam" class="big-num">-</span></div>
+        </div>
+        <div id="timer" class="timer">--</div>
+
+        <div id="leaderControls" class="leader-controls hidden">
+          <div class="bid-manual">
+            <input id="bidAmount" type="number" min="0" step="1" placeholder="입찰 금액 입력" />
+            <div class="bid-adjust">
+              <button type="button" class="chip" data-adjust="1">+1</button>
+              <button type="button" class="chip" data-adjust="10">+10</button>
+              <button type="button" class="chip" data-adjust="100">+100</button>
+              <button type="button" class="chip chip-reset" data-adjust="reset">초기화</button>
+            </div>
+            <button id="placeBidBtn" class="primary">입찰하기</button>
+          </div>
+
+          <div id="quickBidRow" class="bid-quick hidden">
+            <span class="bid-quick-label">⚡ 빠른 입찰</span>
+            <button type="button" class="chip chip-quick" data-quick="1">현재가 +1</button>
+            <button type="button" class="chip chip-quick" data-quick="10">현재가 +10</button>
+            <button type="button" class="chip chip-quick" data-quick="100">현재가 +100</button>
+          </div>
+
+          <p id="bidError" class="error"></p>
+          <div class="my-points">내 잔여 포인트: <span id="myPoints">-</span>P</div>
+        </div>
+
+        <div id="hostControls" class="host-controls hidden">
+          <button id="nextPlayerBtn" class="primary">다음 선수 →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="teams-grid" id="auctionTeams"></div>
+
+    <div class="card">
+      <h2>경매 대기열</h2>
+      <ul id="poolQueue" class="pool-list small"></ul>
+    </div>
+  </section>
+
+  <section id="view-finished" class="view hidden">
+    <div class="card">
+      <h2>🎉 경매 종료</h2>
+      <div id="finalTeams" class="teams-grid"></div>
+    </div>
+  </section>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

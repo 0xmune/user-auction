@@ -1,0 +1,14 @@
+{
+  "name": "user-auction",
+  "version": "1.0.0",
+  "description": "User Auction - 유저 경매 실시간 웹앱",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
