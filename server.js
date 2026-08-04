@@ -64,6 +64,27 @@ function shuffle(arr) {
   return a;
 }
 
+function parseYoutubeId(input) {
+  let s = (input || '').trim();
+  if (!s) return null;
+  if (/^[a-zA-Z0-9_-]{11}$/.test(s)) return s; // 이미 영상 ID만 준 경우
+  if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
+  try {
+    const url = new URL(s);
+    if (url.hostname.includes('youtu.be')) {
+      return url.pathname.slice(1).split('/')[0] || null;
+    }
+    if (url.hostname.includes('youtube.com')) {
+      if (url.pathname === '/watch') return url.searchParams.get('v');
+      if (url.pathname.startsWith('/shorts/')) return url.pathname.split('/')[2] || null;
+      if (url.pathname.startsWith('/embed/')) return url.pathname.split('/')[2] || null;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
 function normalizePlayer(p) {
   const name = ((p && p.name) || '').trim();
   if (!name) return null;
@@ -103,6 +124,13 @@ function createRoom({ teams, poolOrder, timerSettings, mode, maxTeamSize, initia
     current: null, // {playerId, currentBid, currentTeamId, deadline, timeoutHandle}
     phase: 'setup', // setup | bidding | finished
     spectators: new Map(), // socketId -> nickname
+    bgm: {
+      playlist: [], // {id, videoId, title}
+      currentTrackId: null,
+      isPlaying: false,
+      position: 0, // 마지막으로 기록된 재생 위치(초)
+      updatedAt: Date.now(), // position이 기록된 시각
+    },
   };
   rooms.set(code, room);
   return room;
@@ -141,6 +169,21 @@ function roomPublicState(room, viewerRole) {
         price: p.price,
       };
     }),
+    // 경매 목록(누가 있는지)은 블라인드 모드에서도 항상 공개. 숨겨지는 건 "순서"뿐이라
+    // 뽑히는 차례를 유추할 수 없도록 이름순으로 정렬해서 내려준다.
+    roster: room.pool
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        tier: p.tier,
+        mainPosition: p.mainPosition,
+        subPosition: p.subPosition,
+        comment: p.comment,
+        status: p.status,
+        soldTo: p.soldTo,
+        price: p.price,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko')),
     order: room.order,
     auctionIndex: room.auctionIndex,
     current: room.current
@@ -158,6 +201,7 @@ function roomPublicState(room, viewerRole) {
         }
       : null,
     spectatorCount: room.spectators.size,
+    bgm: room.bgm,
   };
 }
 
@@ -351,6 +395,57 @@ io.on('connection', (socket) => {
     if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });
     if (room.current) finalizeCurrent(room);
     advanceToNext(room, true);
+    cb && cb({ ok: true });
+  });
+
+  // ---- BGM (YouTube 재생목록, 방장만 제어) ----
+  socket.on('bgmAddTrack', ({ url, title }, cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });
+    const videoId = parseYoutubeId(url);
+    if (!videoId) return cb && cb({ error: '유효한 유튜브 링크(또는 영상 ID)가 아닙니다.' });
+    room.bgm.playlist.push({ id: genId(), videoId, title: (title || '').trim() || videoId });
+    broadcast(room);
+    cb && cb({ ok: true });
+  });
+
+  socket.on('bgmRemoveTrack', ({ id }, cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });
+    room.bgm.playlist = room.bgm.playlist.filter((t) => t.id !== id);
+    if (room.bgm.currentTrackId === id) {
+      room.bgm.currentTrackId = null;
+      room.bgm.isPlaying = false;
+      room.bgm.position = 0;
+      room.bgm.updatedAt = Date.now();
+    }
+    broadcast(room);
+    cb && cb({ ok: true });
+  });
+
+  socket.on('bgmSelect', ({ id }, cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });
+    const track = room.bgm.playlist.find((t) => t.id === id);
+    if (!track) return cb && cb({ error: '존재하지 않는 트랙입니다.' });
+    room.bgm.currentTrackId = id;
+    room.bgm.isPlaying = true;
+    room.bgm.position = 0;
+    room.bgm.updatedAt = Date.now();
+    broadcast(room);
+    cb && cb({ ok: true });
+  });
+
+  socket.on('bgmPlayPause', ({ isPlaying }, cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });
+    if (!room.bgm.currentTrackId) return cb && cb({ error: '선택된 트랙이 없습니다.' });
+    if (room.bgm.isPlaying && !isPlaying) {
+      room.bgm.position += (Date.now() - room.bgm.updatedAt) / 1000;
+    }
+    room.bgm.isPlaying = !!isPlaying;
+    room.bgm.updatedAt = Date.now();
+    broadcast(room);
     cb && cb({ ok: true });
   });
 

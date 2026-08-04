@@ -13,6 +13,32 @@
     <div id="roomBadge" class="room-badge hidden"></div>
   </header>
 
+  <!-- BGM (유튜브 재생목록, 방장 제어) -->
+  <div id="bgmBar" class="bgm-bar hidden">
+    <div id="ytPlayerContainer" class="bgm-player"></div>
+    <div class="bgm-main">
+      <div class="bgm-now">
+        <span class="bgm-label">🎵 BGM</span>
+        <span id="bgmNowPlaying">선택된 트랙 없음</span>
+      </div>
+      <div class="bgm-controls">
+        <button id="bgmSoundBtn" type="button" class="secondary">🔇 소리 켜기</button>
+        <input id="bgmVolume" type="range" min="0" max="100" value="50" />
+        <button id="bgmHostPlayPause" type="button" class="secondary hidden">⏯ 재생/일시정지</button>
+        <button id="bgmToggleHostPanel" type="button" class="secondary hidden">🎶 목록 관리</button>
+      </div>
+    </div>
+    <div id="bgmHostPanel" class="bgm-host-panel hidden">
+      <div class="bgm-add-row">
+        <input id="bgmUrlInput" type="text" placeholder="유튜브 링크 붙여넣기 (예: https://youtu.be/...)" />
+        <input id="bgmTitleInput" type="text" placeholder="제목 (선택)" />
+        <button id="bgmAddBtn" type="button" class="secondary">추가</button>
+      </div>
+      <p id="bgmError" class="error"></p>
+      <ul id="bgmPlaylist" class="pool-list small"></ul>
+    </div>
+  </div>
+
   <!-- HOME: 최초 선택 화면 -->
   <section id="view-home" class="view">
     <div class="choice-row">
@@ -229,37 +255,43 @@
           <div>최고 입찰팀 <span id="currentTeam" class="big-num">-</span></div>
         </div>
         <div id="timer" class="timer">--</div>
-
-        <div id="leaderControls" class="leader-controls hidden">
-          <div class="bid-manual">
-            <input id="bidAmount" type="number" min="0" step="1" placeholder="입찰 금액 입력" />
-            <div class="bid-adjust">
-              <button type="button" class="chip" data-adjust="1">+1</button>
-              <button type="button" class="chip" data-adjust="10">+10</button>
-              <button type="button" class="chip" data-adjust="100">+100</button>
-              <button type="button" class="chip chip-reset" data-adjust="reset">초기화</button>
-            </div>
-            <button id="placeBidBtn" class="primary">입찰하기</button>
-          </div>
-
-          <div id="quickBidRow" class="bid-quick hidden">
-            <span class="bid-quick-label">⚡ 빠른 입찰</span>
-            <button type="button" class="chip chip-quick" data-quick="1">현재가 +1</button>
-            <button type="button" class="chip chip-quick" data-quick="10">현재가 +10</button>
-            <button type="button" class="chip chip-quick" data-quick="100">현재가 +100</button>
-          </div>
-
-          <p id="bidError" class="error"></p>
-          <div class="my-points">내 잔여 포인트: <span id="myPoints">-</span>P</div>
-        </div>
-
-        <div id="hostControls" class="host-controls hidden">
-          <button id="nextPlayerBtn" class="primary">다음 선수 →</button>
-        </div>
       </div>
     </div>
 
+    <div id="leaderControls" class="leader-controls hidden">
+      <div class="bid-manual">
+        <input id="bidAmount" type="number" min="0" step="1" placeholder="입찰 금액 입력" />
+        <div class="bid-adjust">
+          <button type="button" class="chip" data-adjust="1">+1</button>
+          <button type="button" class="chip" data-adjust="10">+10</button>
+          <button type="button" class="chip" data-adjust="100">+100</button>
+          <button type="button" class="chip chip-reset" data-adjust="reset">초기화</button>
+        </div>
+        <button id="placeBidBtn" class="primary">입찰하기</button>
+      </div>
+
+      <div id="quickBidRow" class="bid-quick hidden">
+        <span class="bid-quick-label">⚡ 빠른 입찰</span>
+        <button type="button" class="chip chip-quick" data-quick="1">현재가 +1</button>
+        <button type="button" class="chip chip-quick" data-quick="10">현재가 +10</button>
+        <button type="button" class="chip chip-quick" data-quick="100">현재가 +100</button>
+      </div>
+
+      <p id="bidError" class="error"></p>
+      <div class="my-points">내 잔여 포인트: <span id="myPoints">-</span>P</div>
+    </div>
+
+    <div id="hostControls" class="host-controls hidden">
+      <button id="nextPlayerBtn" class="primary big">다음 선수 →</button>
+    </div>
+
     <div class="teams-grid" id="auctionTeams"></div>
+
+    <div class="card">
+      <h2>전체 참가자 명단</h2>
+      <p class="hint">경매 순서와는 무관하게, 등록된 전체 목록입니다 (블라인드 모드에서도 항상 공개).</p>
+      <ul id="rosterListAuction" class="pool-list"></ul>
+    </div>
 
     <div class="card">
       <h2>경매 대기열</h2>
@@ -276,6 +308,7 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
 <script src="main.js"></script>
 </body>
 </html>

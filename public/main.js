@@ -179,7 +179,12 @@ $('spectatorJoinBtn').onclick = () => {
 function enterRoomUI() {
   $('roomBadge').textContent = `방 코드: ${roomCode} (${roleLabel()})`;
   $('roomBadge').classList.remove('hidden');
+  $('bgmBar').classList.remove('hidden');
+  $('bgmHostPlayPause').classList.toggle('hidden', myRole !== 'host');
+  $('bgmToggleHostPanel').classList.toggle('hidden', myRole !== 'host');
+  if (myRole !== 'host') $('bgmHostPanel').classList.add('hidden');
   render();
+  applyBgmState(latestState && latestState.bgm);
 }
 
 function roleLabel() {
@@ -192,7 +197,9 @@ function roleLabel() {
 socket.on('state', (state) => {
   if (roomCode && state.code !== roomCode) return;
   latestState = state;
+  checkBidDing(state);
   render();
+  applyBgmState(state.bgm);
 });
 
 // ---------- POOL MANAGEMENT (host, setup phase) ----------
@@ -274,13 +281,15 @@ function render() {
   if (!latestState) return;
   const s = latestState;
 
+  renderBgmPlaylist(s);
+
   if (s.phase === 'setup') {
     showView('setup');
     $('setupRoomCode').textContent = `#${s.code}`;
-    renderPoolList(s);
+    renderRosterList('poolList', s, { allowDelete: true });
     renderTeams($('setupTeams'), s, null);
     $('startAuctionBtn').style.display = myRole === 'host' ? 'block' : 'none';
-    document.querySelector('.player-form').style.display = myRole === 'host' ? 'block' : 'none';
+    document.querySelector('#view-setup .player-form').style.display = myRole === 'host' ? 'block' : 'none';
   } else if (s.phase === 'bidding') {
     showView('auction');
     renderAuction(s);
@@ -299,19 +308,20 @@ function playerMetaText(p) {
   return parts.join(' · ');
 }
 
-function renderPoolList(s) {
-  const ul = $('poolList');
+// 경매 목록(누가 있는지)은 블라인드 모드에서도 항상 전체 공개 (숨겨지는 건 뽑히는 "순서"뿐)
+function renderRosterList(ulId, s, { allowDelete } = {}) {
+  const ul = $(ulId);
   ul.innerHTML = '';
-  s.pool.forEach((p) => {
+  s.roster.forEach((p) => {
     const li = document.createElement('li');
-    if (p.name === null) {
-      li.textContent = '🔒 비공개 (블라인드)';
-      li.classList.add('blind-hidden');
-    } else {
-      const meta = playerMetaText(p);
-      li.innerHTML = `<span>${escapeHtml(p.name)}${meta ? ` <span class="meta-inline">${escapeHtml(meta)}</span>` : ''}</span>`;
-    }
-    if (myRole === 'host') {
+    li.className = p.status;
+    const meta = playerMetaText(p);
+    let label = `${escapeHtml(p.name)}${meta ? ` <span class="meta-inline">${escapeHtml(meta)}</span>` : ''}`;
+    if (p.status === 'sold') label += ` <span class="meta-inline">→ ${escapeHtml(p.soldTo || '')} (${p.price}P)</span>`;
+    if (p.status === 'unsold') label += ' <span class="meta-inline">(유찰)</span>';
+    if (p.status === 'active') label += ' <span class="meta-inline">(경매중)</span>';
+    li.innerHTML = `<span>${label}</span>`;
+    if (allowDelete && myRole === 'host' && p.status === 'pending') {
       const btn = document.createElement('button');
       btn.textContent = '삭제';
       btn.onclick = () => socket.emit('removePoolPlayer', { id: p.id });
@@ -364,10 +374,16 @@ function renderAuction(s) {
   $('currentBid').style.color = leadColor || '';
   $('currentTeam').style.color = leadColor || '';
 
+  // 현재 진행 카드 테두리도 최고 입찰팀 색상으로 통일
+  const currentCard = document.querySelector('.current-card');
+  currentCard.style.setProperty('--lead-color', leadColor || 'var(--gold)');
+  currentCard.classList.toggle('has-leader', !!leadColor);
+
   // 빠른 입찰 버튼은 이미 입찰이 존재할 때만 노출
   $('quickBidRow').classList.toggle('hidden', !(cur && cur.currentBid > 0));
 
   renderTeams($('auctionTeams'), s, cur ? cur.currentTeamId : null);
+  renderRosterList('rosterListAuction', s);
   renderQueue(s);
 
   // timer
@@ -382,7 +398,8 @@ function renderAuction(s) {
 
   // controls visibility
   $('leaderControls').classList.toggle('hidden', myRole !== 'leader' || !cur);
-  $('hostControls').classList.toggle('hidden', myRole !== 'host' || !cur);
+  // 호스트 컨트롤은 낙찰 직후(cur가 null인 순간)에도 계속 보여야 "다음 선수" 진행이 가능하다
+  $('hostControls').classList.toggle('hidden', myRole !== 'host');
 
   if (myRole === 'leader') {
     const myTeam = s.teams.find((t) => t.id === myTeamId);
@@ -440,4 +457,167 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// ================== BGM (YouTube) ==================
+let ytPlayer = null;
+let ytApiReady = false;
+let ytLoadedVideoId = null;
+let pendingBgmState = null;
+let soundOn = false;
+
+window.onYouTubeIframeAPIReady = () => {
+  ytApiReady = true;
+  ytPlayer = new YT.Player('ytPlayerContainer', {
+    height: '100%',
+    width: '100%',
+    playerVars: { autoplay: 0, controls: 1, modestbranding: 1, rel: 0 },
+    events: {
+      onReady: () => {
+        ytPlayer.setVolume(Number($('bgmVolume').value));
+        ytPlayer.mute();
+        if (pendingBgmState) applyBgmState(pendingBgmState);
+      },
+    },
+  });
+};
+
+function applyBgmState(bgm) {
+  if (!bgm) return;
+  if (!ytApiReady || !ytPlayer || typeof ytPlayer.loadVideoById !== 'function') {
+    pendingBgmState = bgm;
+    return;
+  }
+  const track = bgm.playlist.find((t) => t.id === bgm.currentTrackId);
+  if (!track) {
+    $('bgmNowPlaying').textContent = '선택된 트랙 없음';
+    return;
+  }
+  $('bgmNowPlaying').textContent = (bgm.isPlaying ? '▶ ' : '⏸ ') + track.title;
+
+  const elapsed = bgm.isPlaying ? (Date.now() - bgm.updatedAt) / 1000 : 0;
+  const targetPos = Math.max(0, bgm.position + elapsed);
+
+  if (ytLoadedVideoId !== track.videoId) {
+    ytLoadedVideoId = track.videoId;
+    ytPlayer.loadVideoById({ videoId: track.videoId, startSeconds: targetPos });
+    if (!bgm.isPlaying) setTimeout(() => ytPlayer.pauseVideo(), 300);
+    return;
+  }
+
+  try {
+    const drift = Math.abs((ytPlayer.getCurrentTime() || 0) - targetPos);
+    if (drift > 2) ytPlayer.seekTo(targetPos, true);
+  } catch (e) {}
+
+  if (bgm.isPlaying) ytPlayer.playVideo();
+  else ytPlayer.pauseVideo();
+}
+
+$('bgmSoundBtn').onclick = () => {
+  soundOn = !soundOn;
+  if (!ytPlayer) return;
+  if (soundOn) {
+    ytPlayer.unMute();
+    ytPlayer.playVideo();
+    $('bgmSoundBtn').textContent = '🔊 소리 끄기';
+  } else {
+    ytPlayer.mute();
+    $('bgmSoundBtn').textContent = '🔇 소리 켜기';
+  }
+};
+
+$('bgmVolume').oninput = () => {
+  if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(Number($('bgmVolume').value));
+};
+
+$('bgmToggleHostPanel').onclick = () => {
+  $('bgmHostPanel').classList.toggle('hidden');
+};
+
+$('bgmAddBtn').onclick = () => {
+  $('bgmError').textContent = '';
+  const url = $('bgmUrlInput').value.trim();
+  const title = $('bgmTitleInput').value.trim();
+  socket.emit('bgmAddTrack', { url, title }, (res) => {
+    if (res && res.error) {
+      $('bgmError').textContent = res.error;
+      return;
+    }
+    $('bgmUrlInput').value = '';
+    $('bgmTitleInput').value = '';
+  });
+};
+
+$('bgmHostPlayPause').onclick = () => {
+  const bgm = latestState && latestState.bgm;
+  if (!bgm || !bgm.currentTrackId) return;
+  socket.emit('bgmPlayPause', { isPlaying: !bgm.isPlaying }, () => {});
+};
+
+function renderBgmPlaylist(s) {
+  const ul = $('bgmPlaylist');
+  if (!s.bgm) return;
+  ul.innerHTML = '';
+  s.bgm.playlist.forEach((t) => {
+    const li = document.createElement('li');
+    if (t.id === s.bgm.currentTrackId) li.classList.add('bgm-active');
+    li.innerHTML = `<span>${escapeHtml(t.title)}</span>`;
+    if (myRole === 'host') {
+      const selectBtn = document.createElement('button');
+      selectBtn.className = 'bgm-track-select';
+      selectBtn.textContent = '재생';
+      selectBtn.onclick = () => socket.emit('bgmSelect', { id: t.id }, () => {});
+      li.appendChild(selectBtn);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '삭제';
+      removeBtn.onclick = () => socket.emit('bgmRemoveTrack', { id: t.id }, () => {});
+      li.appendChild(removeBtn);
+    }
+    ul.appendChild(li);
+  });
+}
+
+// ================== 입찰 효과음 (합성 "띵" 소리, 파일 불필요) ==================
+let dingAudioCtx = null;
+function ensureDingAudioCtx() {
+  if (!dingAudioCtx) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    dingAudioCtx = new Ctx();
+  }
+  if (dingAudioCtx.state === 'suspended') dingAudioCtx.resume();
+  return dingAudioCtx;
+}
+// 페이지 첫 클릭에서 오디오 컨텍스트를 미리 깨워둬야 이후 소켓 이벤트로 인한
+// (사용자 제스처 없는) 재생 시도가 브라우저 자동재생 정책에 막히지 않는다.
+document.addEventListener('click', () => ensureDingAudioCtx(), { once: true });
+
+function playDing() {
+  const ctx = ensureDingAudioCtx();
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1046.5, now); // C6
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.35, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.45);
+}
+
+let prevBid = { playerId: null, amount: 0 };
+function checkBidDing(state) {
+  const cur = state.current;
+  if (!cur) {
+    prevBid = { playerId: null, amount: 0 };
+    return;
+  }
+  const pid = cur.player.id;
+  if (pid === prevBid.playerId && cur.currentBid > prevBid.amount) {
+    playDing();
+  }
+  prevBid = { playerId: pid, amount: cur.currentBid };
 }
