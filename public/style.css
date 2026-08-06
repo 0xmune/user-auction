@@ -315,6 +315,15 @@ button {
   margin-top: 10px;
 }
 #auctionTeams { margin-bottom: 28px; }
+
+.auction-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 780px) {
+  .auction-lists { grid-template-columns: 1fr; }
+}
 .team-card {
   background: var(--panel2);
   border-radius: var(--radius);
