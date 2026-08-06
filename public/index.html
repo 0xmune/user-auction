@@ -10,23 +10,16 @@
 <div id="app">
   <header class="topbar">
     <h1>🏆 User Auction</h1>
-    <div id="roomBadge" class="room-badge hidden"></div>
-  </header>
-
-  <!-- BGM (유튜브 재생목록, 방장 제어) -->
-  <div id="bgmBar" class="bgm-bar hidden">
-    <div id="ytPlayerContainer" class="bgm-player"></div>
-    <div class="bgm-main">
-      <div class="bgm-now">
-        <span class="bgm-label">🎵 BGM</span>
-        <span id="bgmNowPlaying">선택된 트랙 없음</span>
+    <div class="header-right">
+      <div id="bgmBar" class="bgm-compact hidden">
+        <div id="ytPlayerContainer" class="bgm-player-mini"></div>
+        <span id="bgmNowPlaying" class="bgm-now-mini">BGM 없음</span>
+        <button id="bgmSoundBtn" type="button" class="bgm-mini-btn">🔇</button>
+        <input id="bgmVolume" type="range" min="0" max="100" value="50" class="bgm-volume-mini" />
+        <button id="bgmHostPlayPause" type="button" class="bgm-mini-btn hidden">⏯</button>
+        <button id="bgmToggleHostPanel" type="button" class="bgm-mini-btn hidden">🎶</button>
       </div>
-      <div class="bgm-controls">
-        <button id="bgmSoundBtn" type="button" class="secondary">🔇 소리 켜기</button>
-        <input id="bgmVolume" type="range" min="0" max="100" value="50" />
-        <button id="bgmHostPlayPause" type="button" class="secondary hidden">⏯ 재생/일시정지</button>
-        <button id="bgmToggleHostPanel" type="button" class="secondary hidden">🎶 목록 관리</button>
-      </div>
+      <div id="roomBadge" class="room-badge hidden"></div>
     </div>
     <div id="bgmHostPanel" class="bgm-host-panel hidden">
       <div class="bgm-add-row">
@@ -37,7 +30,7 @@
       <p id="bgmError" class="error"></p>
       <ul id="bgmPlaylist" class="pool-list small"></ul>
     </div>
-  </div>
+  </header>
 
   <!-- HOME: 최초 선택 화면 -->
   <section id="view-home" class="view">
