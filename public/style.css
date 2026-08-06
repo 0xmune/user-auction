@@ -347,6 +347,18 @@ button {
 @media (max-width: 780px) {
   .auction-lists { grid-template-columns: 1fr; }
 }
+
+/* ---- 경매 목록: 칸 없이 닉네임만 색상으로 구분 ---- */
+.roster-plain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 4px 2px;
+}
+.roster-name { font-size: 1.05rem; font-weight: 600; }
+.roster-name.roster-pending { color: #ffffff; }
+.roster-name.roster-active { color: var(--gold); font-weight: 700; }
+.roster-name.roster-done { color: #000000; }
 .team-card {
   background: var(--panel2);
   border-radius: var(--radius);

@@ -363,6 +363,22 @@ function renderRosterList(ulId, s, { allowDelete } = {}) {
   });
 }
 
+// 경매 목록(오른쪽 패널): 칸 없이 닉네임만 나열, 상태별 색상만 구분
+// 이미 낙찰/유찰된 사람은 검은색, 아직 안 한 사람은 흰색, 현재 경매중인 사람은 포인트와 같은 골드색
+function renderRosterPlain(s) {
+  const container = $('rosterListAuction');
+  container.innerHTML = '';
+  s.roster.forEach((p) => {
+    const span = document.createElement('span');
+    span.className = 'roster-name';
+    if (p.status === 'active') span.classList.add('roster-active');
+    else if (p.status === 'sold' || p.status === 'unsold') span.classList.add('roster-done');
+    else span.classList.add('roster-pending');
+    span.textContent = p.name;
+    container.appendChild(span);
+  });
+}
+
 function renderTeams(container, s, leadingTeamId) {
   container.innerHTML = '';
   s.teams.forEach((t) => {
@@ -415,7 +431,7 @@ function renderAuction(s) {
   $('quickBidRow').classList.toggle('hidden', !(cur && cur.currentBid > 0));
 
   renderTeams($('auctionTeams'), s, cur ? cur.currentTeamId : null);
-  renderRosterList('rosterListAuction', s);
+  renderRosterPlain(s);
   renderQueue(s);
 
   // timer
