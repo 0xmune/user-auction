@@ -274,6 +274,18 @@
 
   <!-- AUCTION (shared view for host/leader/spectator) -->
   <section id="view-auction" class="view hidden">
+    <div class="auction-lists">
+      <div class="card">
+        <h2>경매 순서</h2>
+        <ul id="poolQueue" class="pool-list small"></ul>
+      </div>
+
+      <div class="card">
+        <h2>경매 목록</h2>
+        <ul id="rosterListAuction" class="pool-list"></ul>
+      </div>
+    </div>
+
     <div class="auction-main">
       <div class="current-card">
         <div id="progressLabel" class="progress-label"></div>
@@ -284,18 +296,6 @@
           <div>최고 입찰팀 <span id="currentTeam" class="big-num">-</span></div>
         </div>
         <div id="timer" class="timer">--</div>
-      </div>
-    </div>
-
-    <div class="auction-lists">
-      <div class="card">
-        <h2>경매 순서</h2>
-        <ul id="poolQueue" class="pool-list small"></ul>
-      </div>
-
-      <div class="card">
-        <h2>경매 목록</h2>
-        <ul id="rosterListAuction" class="pool-list"></ul>
       </div>
     </div>
 
