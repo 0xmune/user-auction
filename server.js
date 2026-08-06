@@ -20,9 +20,9 @@ const TEAM_COLORS = [
 ];
 
 const DEFAULT_TIMER = {
-  totalSeconds: 60, // 아이템당 기본 제한시간
-  antiSnipeThreshold: 10, // 이 시간(초) 미만에서 상위 입찰이 들어오면
-  antiSnipeReset: 10, // 남은 시간을 이 값(초)으로 재설정
+  totalSeconds: 30, // 아이템당 기본 제한시간
+  antiSnipeThreshold: 5, // 이 시간(초) 미만에서 상위 입찰이 들어오면
+  antiSnipeReset: 5, // 남은 시간을 이 값(초)으로 재설정
 };
 
 function clampInt(v, min, max, fallback) {
