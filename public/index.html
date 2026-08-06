@@ -287,6 +287,18 @@
       </div>
     </div>
 
+    <div class="auction-lists">
+      <div class="card">
+        <h2>경매 순서</h2>
+        <ul id="poolQueue" class="pool-list small"></ul>
+      </div>
+
+      <div class="card">
+        <h2>경매 목록</h2>
+        <ul id="rosterListAuction" class="pool-list"></ul>
+      </div>
+    </div>
+
     <div id="leaderControls" class="leader-controls hidden">
       <div class="bid-manual">
         <input id="bidAmount" type="number" min="0" step="1" placeholder="입찰 금액 입력" />
@@ -315,19 +327,6 @@
     </div>
 
     <div class="teams-grid" id="auctionTeams"></div>
-
-    <div class="auction-lists">
-      <div class="card">
-        <h2>경매 순서</h2>
-        <ul id="poolQueue" class="pool-list small"></ul>
-      </div>
-
-      <div class="card">
-        <h2>경매 목록</h2>
-        <p class="hint">경매 순서와는 무관하게, 등록된 전체 목록입니다 (블라인드 모드에서도 항상 공개).</p>
-        <div id="rosterListAuction" class="roster-plain"></div>
-      </div>
-    </div>
   </section>
 
   <section id="view-finished" class="view hidden">
