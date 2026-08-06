@@ -348,6 +348,17 @@ button {
 @media (max-width: 780px) {
   .auction-lists { grid-template-columns: 1fr; }
 }
+
+/* ---- 경매 순서 / 경매 목록: 칸 없이 닉네임만 색상으로 구분 ---- */
+.name-plain-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 4px 2px;
+}
+.name-plain { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+.name-plain.name-active { color: var(--gold); font-weight: 700; }
+.name-plain.name-unsold { color: var(--danger); }
 .team-card {
   background: var(--panel2);
   border-radius: var(--radius);

@@ -415,7 +415,7 @@ function renderAuction(s) {
   $('quickBidRow').classList.toggle('hidden', !(cur && cur.currentBid > 0));
 
   renderTeams($('auctionTeams'), s, cur ? cur.currentTeamId : null);
-  renderRosterList('rosterListAuction', s);
+  renderPendingList(s);
   renderQueue(s);
 
   // timer
@@ -463,25 +463,34 @@ function updateTimer(deadline, leadColor) {
   }
 }
 
+// 경매 목록: 아직 순서가 안 온(대기중) 선수만 닉네임 텍스트로 표시
+function renderPendingList(s) {
+  const container = $('rosterListAuction');
+  container.innerHTML = '';
+  s.roster
+    .filter((p) => p.status === 'pending')
+    .forEach((p) => {
+      const span = document.createElement('span');
+      span.className = 'name-plain';
+      span.textContent = p.name === null ? '🔒 비공개' : p.name;
+      container.appendChild(span);
+    });
+}
+
+// 경매 순서: 이미 진행된(경매중/낙찰/유찰) 선수만 닉네임 텍스트로, 진행 순서대로 표시
 function renderQueue(s) {
-  const ul = $('poolQueue');
-  ul.innerHTML = '';
+  const container = $('poolQueue');
+  container.innerHTML = '';
   s.order.forEach((id) => {
     const p = s.pool.find((pp) => pp.id === id);
-    if (!p) return;
-    const li = document.createElement('li');
-    li.className = p.status;
-    let label = p.name === null ? '🔒 비공개' : p.name;
-    if (p.name === null) li.classList.add('blind-hidden');
-    else {
-      const meta = playerMetaText(p);
-      if (meta) label += ` (${meta})`;
-    }
-    if (p.status === 'sold') label += ` → ${p.soldTo || ''} (${p.price}P)`;
-    if (p.status === 'unsold') label += ' (유찰)';
-    if (p.status === 'active') label += ' (경매중)';
-    li.textContent = label;
-    ul.appendChild(li);
+    if (!p || p.status === 'pending') return;
+    const span = document.createElement('span');
+    span.className = 'name-plain';
+    if (p.status === 'active') span.classList.add('name-active');
+    else if (p.status === 'unsold') span.classList.add('name-unsold');
+    else span.classList.add('name-sold');
+    span.textContent = p.name === null ? '🔒 비공개' : p.name;
+    container.appendChild(span);
   });
 }
 
