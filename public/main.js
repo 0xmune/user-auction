@@ -52,7 +52,7 @@ $('removeTeamBtn').onclick = () => {
 };
 
 // ---------- MODE TOGGLE ----------
-let selectedMode = 'open';
+let selectedMode = 'blind';
 document.querySelectorAll('#modeToggle .mode-option').forEach((btn) => {
   btn.onclick = () => {
     document.querySelectorAll('#modeToggle .mode-option').forEach((b) => b.classList.remove('selected'));
@@ -60,6 +60,26 @@ document.querySelectorAll('#modeToggle .mode-option').forEach((btn) => {
     selectedMode = btn.dataset.mode;
   };
 });
+
+// ---------- 스위치형 선택 그룹 (티어/포지션) ----------
+function initSwitchGroups() {
+  document.querySelectorAll('.switch-group').forEach((group) => {
+    group.querySelectorAll('button').forEach((btn) => {
+      btn.onclick = () => {
+        group.dataset.value = btn.dataset.value;
+        group.querySelectorAll('button').forEach((b) => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      };
+    });
+  });
+}
+initSwitchGroups();
+
+function resetSwitchGroup(id) {
+  const group = $(id);
+  group.dataset.value = '';
+  group.querySelectorAll('button').forEach((b, i) => b.classList.toggle('selected', i === 0));
+}
 
 // ---------- CREATE ROOM: 경매 목록 미리 구성 (방 생성 전, 클라이언트 로컬 초안) ----------
 let draftPool = [];
@@ -91,16 +111,16 @@ $('draftAddPoolBtn').onclick = () => {
   }
   draftPool.push({
     name,
-    tier: $('draftPlayerTier').value,
-    mainPosition: $('draftPlayerMainPos').value,
-    subPosition: $('draftPlayerSubPos').value,
+    tier: $('draftPlayerTier').dataset.value,
+    mainPosition: $('draftPlayerMainPos').dataset.value,
+    subPosition: $('draftPlayerSubPos').dataset.value,
     comment: $('draftPlayerComment').value.trim(),
   });
   renderDraftPoolList();
   $('draftPlayerName').value = '';
-  $('draftPlayerTier').value = '';
-  $('draftPlayerMainPos').value = '';
-  $('draftPlayerSubPos').value = '';
+  resetSwitchGroup('draftPlayerTier');
+  resetSwitchGroup('draftPlayerMainPos');
+  resetSwitchGroup('draftPlayerSubPos');
   $('draftPlayerComment').value = '';
   $('draftPlayerName').focus();
 };
@@ -211,9 +231,9 @@ $('addPoolBtn').onclick = () => {
   $('addPoolError').textContent = '';
   const player = {
     name: $('playerName').value.trim(),
-    tier: $('playerTier').value,
-    mainPosition: $('playerMainPos').value,
-    subPosition: $('playerSubPos').value,
+    tier: $('playerTier').dataset.value,
+    mainPosition: $('playerMainPos').dataset.value,
+    subPosition: $('playerSubPos').dataset.value,
     comment: $('playerComment').value.trim(),
   };
   socket.emit('addPoolPlayer', player, (res) => {
@@ -222,9 +242,9 @@ $('addPoolBtn').onclick = () => {
       return;
     }
     $('playerName').value = '';
-    $('playerTier').value = '';
-    $('playerMainPos').value = '';
-    $('playerSubPos').value = '';
+    resetSwitchGroup('playerTier');
+    resetSwitchGroup('playerMainPos');
+    resetSwitchGroup('playerSubPos');
     $('playerComment').value = '';
     $('playerName').focus();
   });

@@ -63,24 +63,24 @@
       <label>경매 목록 순서
         <select id="poolOrder">
           <option value="input">입력 순서대로</option>
-          <option value="random">랜덤</option>
+          <option value="random" selected>랜덤</option>
         </select>
       </label>
 
       <label>경매 모드</label>
       <div class="mode-toggle" id="modeToggle">
-        <button type="button" class="mode-option selected" data-mode="open">
+        <button type="button" class="mode-option" data-mode="open">
           <div class="mode-name">오픈</div>
           <div class="mode-desc">참가자에게 남은 경매 목록 순서가 공개됩니다</div>
         </button>
-        <button type="button" class="mode-option" data-mode="blind">
+        <button type="button" class="mode-option selected" data-mode="blind">
           <div class="mode-name">블라인드</div>
           <div class="mode-desc">현재 진행중인 선수만 보이고, 남은 목록/순서는 방장에게만 공개됩니다</div>
         </button>
       </div>
 
       <label>팀당 최대 낙찰 인원
-        <input id="maxTeamSize" type="number" min="1" max="20" value="5" />
+        <input id="maxTeamSize" type="number" min="1" max="20" value="4" />
       </label>
 
       <label>BGM 유튜브 링크 (선택)
@@ -115,28 +115,44 @@
           <label>닉네임
             <input id="draftPlayerName" type="text" placeholder="예: 페이커" />
           </label>
-          <label>티어
-            <select id="draftPlayerTier">
-              <option value="">미지정</option>
-              <option>아이언</option><option>브론즈</option><option>실버</option>
-              <option>골드</option><option>플래티넘</option><option>에메랄드</option>
-              <option>다이아몬드</option><option>마스터</option><option>그랜드마스터</option><option>챌린저</option>
-            </select>
-          </label>
+        </div>
+        <label>티어</label>
+        <div class="switch-group" id="draftPlayerTier" data-value="">
+          <button type="button" class="selected" data-value="">미지정</button>
+          <button type="button" data-value="아이언">아이언</button>
+          <button type="button" data-value="브론즈">브론즈</button>
+          <button type="button" data-value="실버">실버</button>
+          <button type="button" data-value="골드">골드</button>
+          <button type="button" data-value="플래티넘">플래티넘</button>
+          <button type="button" data-value="에메랄드">에메랄드</button>
+          <button type="button" data-value="다이아몬드">다이아몬드</button>
+          <button type="button" data-value="마스터">마스터</button>
+          <button type="button" data-value="그랜드마스터">그랜드마스터</button>
+          <button type="button" data-value="챌린저">챌린저</button>
         </div>
         <div class="player-form-row">
-          <label>메인 포지션
-            <select id="draftPlayerMainPos">
-              <option value="">미지정</option>
-              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
-            </select>
-          </label>
-          <label>서브 포지션
-            <select id="draftPlayerSubPos">
-              <option value="">미지정</option>
-              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
-            </select>
-          </label>
+          <div>
+            <label>메인 포지션</label>
+            <div class="switch-group" id="draftPlayerMainPos" data-value="">
+              <button type="button" class="selected" data-value="">미지정</button>
+              <button type="button" data-value="탑">탑</button>
+              <button type="button" data-value="정글">정글</button>
+              <button type="button" data-value="미드">미드</button>
+              <button type="button" data-value="원딜">원딜</button>
+              <button type="button" data-value="서포터">서포터</button>
+            </div>
+          </div>
+          <div>
+            <label>서브 포지션</label>
+            <div class="switch-group" id="draftPlayerSubPos" data-value="">
+              <button type="button" class="selected" data-value="">미지정</button>
+              <button type="button" data-value="탑">탑</button>
+              <button type="button" data-value="정글">정글</button>
+              <button type="button" data-value="미드">미드</button>
+              <button type="button" data-value="원딜">원딜</button>
+              <button type="button" data-value="서포터">서포터</button>
+            </div>
+          </div>
         </div>
         <label>한마디
           <input id="draftPlayerComment" type="text" placeholder="예: 캐리 보장합니다" />
@@ -209,28 +225,44 @@
           <label>닉네임
             <input id="playerName" type="text" placeholder="예: 페이커" />
           </label>
-          <label>티어
-            <select id="playerTier">
-              <option value="">미지정</option>
-              <option>아이언</option><option>브론즈</option><option>실버</option>
-              <option>골드</option><option>플래티넘</option><option>에메랄드</option>
-              <option>다이아몬드</option><option>마스터</option><option>그랜드마스터</option><option>챌린저</option>
-            </select>
-          </label>
+        </div>
+        <label>티어</label>
+        <div class="switch-group" id="playerTier" data-value="">
+          <button type="button" class="selected" data-value="">미지정</button>
+          <button type="button" data-value="아이언">아이언</button>
+          <button type="button" data-value="브론즈">브론즈</button>
+          <button type="button" data-value="실버">실버</button>
+          <button type="button" data-value="골드">골드</button>
+          <button type="button" data-value="플래티넘">플래티넘</button>
+          <button type="button" data-value="에메랄드">에메랄드</button>
+          <button type="button" data-value="다이아몬드">다이아몬드</button>
+          <button type="button" data-value="마스터">마스터</button>
+          <button type="button" data-value="그랜드마스터">그랜드마스터</button>
+          <button type="button" data-value="챌린저">챌린저</button>
         </div>
         <div class="player-form-row">
-          <label>메인 포지션
-            <select id="playerMainPos">
-              <option value="">미지정</option>
-              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
-            </select>
-          </label>
-          <label>서브 포지션
-            <select id="playerSubPos">
-              <option value="">미지정</option>
-              <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서포터</option>
-            </select>
-          </label>
+          <div>
+            <label>메인 포지션</label>
+            <div class="switch-group" id="playerMainPos" data-value="">
+              <button type="button" class="selected" data-value="">미지정</button>
+              <button type="button" data-value="탑">탑</button>
+              <button type="button" data-value="정글">정글</button>
+              <button type="button" data-value="미드">미드</button>
+              <button type="button" data-value="원딜">원딜</button>
+              <button type="button" data-value="서포터">서포터</button>
+            </div>
+          </div>
+          <div>
+            <label>서브 포지션</label>
+            <div class="switch-group" id="playerSubPos" data-value="">
+              <button type="button" class="selected" data-value="">미지정</button>
+              <button type="button" data-value="탑">탑</button>
+              <button type="button" data-value="정글">정글</button>
+              <button type="button" data-value="미드">미드</button>
+              <button type="button" data-value="원딜">원딜</button>
+              <button type="button" data-value="서포터">서포터</button>
+            </div>
+          </div>
         </div>
         <label>한마디
           <input id="playerComment" type="text" placeholder="예: 캐리 보장합니다" />

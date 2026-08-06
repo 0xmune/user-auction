@@ -218,6 +218,29 @@ button {
 
 .row-buttons { margin: 10px 0; }
 
+/* ---- 스위치형 선택 그룹 (티어/포지션) ---- */
+.switch-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 14px;
+}
+.switch-group button {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.switch-group button:hover { border-color: var(--gold); color: var(--gold-bright); }
+.switch-group button.selected {
+  background: linear-gradient(180deg, #c8aa6e, #8a6d3b);
+  color: #010a13;
+  border-color: var(--gold);
+}
+
 .team-row {
   display: grid;
   grid-template-columns: 1fr 1fr 100px;
