@@ -221,7 +221,6 @@ function roleLabel() {
 socket.on('state', (state) => {
   if (roomCode && state.code !== roomCode) return;
   latestState = state;
-  checkBidDing(state);
   render();
   applyBgmState(state.bgm);
 });
@@ -229,6 +228,11 @@ socket.on('state', (state) => {
 // 팀별 보이스 큐 (1번팀 다인 / 2번팀 민상 / 3번팀 아라 / 4번팀 하준, 5번째 팀부터는 합성음으로 대체)
 const TEAM_VOICES = ['dain', 'minsang', 'ara', 'hajun'];
 socket.on('voiceCue', ({ teamId, action }) => {
+  // 직접입력 입찰의 공통 알림음은 팀 구분 없이 항상 합성 띵 사운드
+  if (action === 'ding') {
+    playDing();
+    return;
+  }
   const idx = latestState ? latestState.teams.findIndex((t) => t.id === teamId) : -1;
   const voice = TEAM_VOICES[idx];
   if (voice) {
@@ -271,6 +275,8 @@ $('startAuctionBtn').onclick = () => {
 };
 
 // ---------- BIDDING ----------
+// cueAction 미지정 시 기본 'ding'(직접입력 입찰용 공통 알림음), 빠른입찰은 각 액션명을 넘겨서
+// 팀 보이스 사운드만 재생되고 별도 띵 소리가 겹치지 않게 한다.
 function submitBid(amount, cueAction) {
   $('bidError').textContent = '';
   socket.emit('placeBid', { amount }, (res) => {
@@ -279,7 +285,7 @@ function submitBid(amount, cueAction) {
       return;
     }
     $('bidAmount').value = '';
-    if (cueAction) socket.emit('voiceCue', { action: cueAction }, () => {});
+    socket.emit('voiceCue', { action: cueAction || 'ding' }, () => {});
   });
 }
 
@@ -799,16 +805,3 @@ function playDieSound() {
   });
 }
 
-let prevBid = { playerId: null, amount: 0 };
-function checkBidDing(state) {
-  const cur = state.current;
-  if (!cur) {
-    prevBid = { playerId: null, amount: 0 };
-    return;
-  }
-  const pid = cur.player.id;
-  if (pid === prevBid.playerId && cur.currentBid > prevBid.amount) {
-    playDing();
-  }
-  prevBid = { playerId: pid, amount: cur.currentBid };
-}

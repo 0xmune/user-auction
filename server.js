@@ -433,7 +433,7 @@ io.on('connection', (socket) => {
     if (!room) return cb && cb({ error: '방을 찾을 수 없습니다.' });
     const team = findTeamBySocket(room, socket.id);
     if (!team) return cb && cb({ error: '팀장만 가능합니다.' });
-    if (!['check', 'quarter', 'harp', 'die'].includes(action)) {
+    if (!['check', 'quarter', 'harp', 'die', 'ding'].includes(action)) {
       return cb && cb({ error: '잘못된 액션입니다.' });
     }
     io.to(room.code).emit('voiceCue', { teamId: team.id, action });
