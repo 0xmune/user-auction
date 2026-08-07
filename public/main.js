@@ -289,14 +289,24 @@ document.querySelectorAll('#leaderControls .bid-adjust .chip').forEach((btn) => 
   };
 });
 
-// 빠른 입찰: 현재 최고 입찰가에 +1/+10/+100 하여 즉시 입찰
+// 빠른 입찰: 현재 최고 입찰가에 +1/+10/+100 하여 즉시 입찰 (포커 칩 사운드 재생)
+const QUICK_BID_SOUND = { 1: playCheckSound, 10: playDdadangSound, 100: playHalfSound };
 document.querySelectorAll('#quickBidRow .chip-quick').forEach((btn) => {
   btn.onclick = () => {
     const cur = latestState && latestState.current ? latestState.current.currentBid : 0;
     const delta = Number(btn.dataset.quick);
+    (QUICK_BID_SOUND[delta] || (() => {}))();
     submitBid(cur + delta);
   };
 });
+
+// 입찰 포기 (최고 입찰자가 아닐 때만 가능, 포커의 '다이' 사운드)
+$('foldBidBtn').onclick = () => {
+  playDieSound();
+  socket.emit('foldBid', {}, (res) => {
+    if (res && res.error) $('bidError').textContent = res.error;
+  });
+};
 
 $('nextPlayerBtn').onclick = () => socket.emit('nextPlayer', {});
 
@@ -413,6 +423,13 @@ function renderAuction(s) {
 
   // 빠른 입찰 버튼은 이미 입찰이 존재할 때만 노출
   $('quickBidRow').classList.toggle('hidden', !(cur && cur.currentBid > 0));
+
+  // 입찰 포기: 최고 입찰자가 아니고 아직 포기하지 않은 팀장에게만 노출
+  const iAmTopBidder = cur && cur.currentTeamId === myTeamId;
+  const iAlreadyFolded = cur && cur.foldedTeamIds && cur.foldedTeamIds.includes(myTeamId);
+  $('foldBidBtn').classList.toggle('hidden', myRole !== 'leader' || !cur || iAmTopBidder || iAlreadyFolded);
+  $('bidAmount').disabled = !!iAlreadyFolded;
+  $('placeBidBtn').disabled = !!iAlreadyFolded;
 
   renderTeams($('auctionTeams'), s, cur ? cur.currentTeamId : null);
   renderPendingList(s);
@@ -665,6 +682,92 @@ function playDing() {
     osc.connect(gain).connect(ctx.destination);
     osc.start(t0);
     osc.stop(t0 + 0.3);
+  });
+}
+
+// 포커 칩/액션 사운드 (모두 합성음, 파일 불필요)
+
+// 체크(+1): 짧고 가벼운 탁 소리
+function playCheckSound() {
+  const ctx = ensureDingAudioCtx();
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(1800, now);
+  gain.gain.setValueAtTime(0.001, now);
+  gain.gain.exponentialRampToValueAtTime(0.2, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.08);
+}
+
+// 따당(+10): 칩 두 개가 부딪히는 듯한 두 번의 탁탁 소리
+function playDdadangSound() {
+  const ctx = ensureDingAudioCtx();
+  const now = ctx.currentTime;
+  [0, 0.09].forEach((offset, i) => {
+    const t0 = now + offset;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(i === 0 ? 1400 : 1700, t0);
+    gain.gain.setValueAtTime(0.001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.28, t0 + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.1);
+  });
+}
+
+// 하프(+100): 묵직하게 깔리는 저음 + 짧은 상승 스윕으로 임팩트 강조
+function playHalfSound() {
+  const ctx = ensureDingAudioCtx();
+  const now = ctx.currentTime;
+
+  const thud = ctx.createOscillator();
+  const thudGain = ctx.createGain();
+  thud.type = 'sine';
+  thud.frequency.setValueAtTime(160, now);
+  thud.frequency.exponentialRampToValueAtTime(60, now + 0.25);
+  thudGain.gain.setValueAtTime(0.001, now);
+  thudGain.gain.exponentialRampToValueAtTime(0.4, now + 0.02);
+  thudGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+  thud.connect(thudGain).connect(ctx.destination);
+  thud.start(now);
+  thud.stop(now + 0.35);
+
+  const sweep = ctx.createOscillator();
+  const sweepGain = ctx.createGain();
+  sweep.type = 'sawtooth';
+  sweep.frequency.setValueAtTime(300, now + 0.05);
+  sweep.frequency.exponentialRampToValueAtTime(900, now + 0.2);
+  sweepGain.gain.setValueAtTime(0.0001, now + 0.05);
+  sweepGain.gain.exponentialRampToValueAtTime(0.15, now + 0.12);
+  sweepGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+  sweep.connect(sweepGain).connect(ctx.destination);
+  sweep.start(now + 0.05);
+  sweep.stop(now + 0.25);
+}
+
+// 다이(포기): 아래로 처지는 두 음, 트롬본 "womp womp" 느낌
+function playDieSound() {
+  const ctx = ensureDingAudioCtx();
+  const now = ctx.currentTime;
+  [[330, now], [220, now + 0.16]].forEach(([freq, t0]) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, t0);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.75, t0 + 0.18);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.2);
   });
 }
 

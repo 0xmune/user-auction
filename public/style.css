@@ -519,6 +519,15 @@ button {
 .chip-quick { background: linear-gradient(180deg, #c8aa6e, #8a6d3b); color: #010a13; border: none; }
 .chip-quick:hover { filter: brightness(1.15); }
 
+.chip-fold {
+  display: block;
+  margin: 10px auto 0;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.chip-fold:hover { background: rgba(232,64,87,0.12); }
+
 .my-points { width: 100%; text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 8px; letter-spacing: 0.5px; }
 
 /* ---- 선수 등록 폼 ---- */

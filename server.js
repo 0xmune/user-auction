@@ -208,6 +208,7 @@ function roomPublicState(room, viewerRole) {
             ? room.teams.find((t) => t.id === room.current.currentTeamId)?.color
             : null,
           deadline: room.current.deadline,
+          foldedTeamIds: room.current.foldedTeamIds,
         }
       : null,
     spectatorCount: room.spectators.size,
@@ -293,7 +294,14 @@ function advanceToNext(room, autoStart) {
   const playerId = room.order[room.auctionIndex];
   const player = room.pool.find((p) => p.id === playerId);
   player.status = 'active';
-  room.current = { playerId, currentBid: 0, currentTeamId: null, deadline: null, timeoutHandle: null };
+  room.current = {
+    playerId,
+    currentBid: 0,
+    currentTeamId: null,
+    deadline: null,
+    timeoutHandle: null,
+    foldedTeamIds: [],
+  };
   if (autoStart) startTimer(room);
   broadcast(room);
 }
@@ -380,6 +388,9 @@ io.on('connection', (socket) => {
     if (!room || !room.current) return cb && cb({ error: '진행중인 경매가 없습니다.' });
     const team = findTeamBySocket(room, socket.id);
     if (!team) return cb && cb({ error: '팀장만 입찰할 수 있습니다.' });
+    if (room.current.foldedTeamIds.includes(team.id)) {
+      return cb && cb({ error: '이번 선수는 입찰을 포기했습니다.' });
+    }
     const bid = Number(amount);
     if (!Number.isFinite(bid) || bid <= room.current.currentBid) {
       return cb && cb({ error: '현재 입찰가보다 높은 금액을 입력하세요.' });
@@ -396,6 +407,22 @@ io.on('connection', (socket) => {
     room.current.currentBid = bid;
     room.current.currentTeamId = team.id;
     onNewBid(room);
+    broadcast(room);
+    cb && cb({ ok: true });
+  });
+
+  // 상위 입찰자가 아닌 팀장이 이번 선수에 대해 입찰을 포기 (포커의 '다이'처럼 이번 판만 이탈)
+  socket.on('foldBid', (_, cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room || !room.current) return cb && cb({ error: '진행중인 경매가 없습니다.' });
+    const team = findTeamBySocket(room, socket.id);
+    if (!team) return cb && cb({ error: '팀장만 포기할 수 있습니다.' });
+    if (room.current.currentTeamId === team.id) {
+      return cb && cb({ error: '현재 최고 입찰자는 포기할 수 없습니다.' });
+    }
+    if (!room.current.foldedTeamIds.includes(team.id)) {
+      room.current.foldedTeamIds.push(team.id);
+    }
     broadcast(room);
     cb && cb({ ok: true });
   });
