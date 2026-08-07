@@ -554,6 +554,19 @@ function applyBgmState(bgm) {
     pendingBgmState = bgm;
     return;
   }
+
+  // 자동재생 시도는 입장 직후 첫 상태 수신 시점에 딱 한 번만 소진한다.
+  // (그 시점에 곡이 없으면 그냥 소진하고 끝 — 나중에 방장이 곡을 추가/변경해도 다시 켜지지 않음)
+  if (autoplayGestureArmed) {
+    autoplayGestureArmed = false;
+    const track = bgm.playlist.find((t) => t.id === bgm.currentTrackId);
+    if (track && bgm.isPlaying) {
+      soundOn = true;
+      ytPlayer.unMute();
+      $('bgmSoundBtn').textContent = '🔊 소리 끄기';
+    }
+  }
+
   const track = bgm.playlist.find((t) => t.id === bgm.currentTrackId);
   if (!track) {
     $('bgmNowPlaying').textContent = '선택된 트랙 없음';
@@ -566,12 +579,6 @@ function applyBgmState(bgm) {
 
   if (ytLoadedVideoId !== track.videoId) {
     ytLoadedVideoId = track.videoId;
-    if (autoplayGestureArmed && bgm.isPlaying) {
-      autoplayGestureArmed = false;
-      soundOn = true;
-      ytPlayer.unMute();
-      $('bgmSoundBtn').textContent = '🔊 소리 끄기';
-    }
     ytPlayer.loadVideoById({ videoId: track.videoId, startSeconds: targetPos });
     if (!bgm.isPlaying) setTimeout(() => ytPlayer.pauseVideo(), 300);
     return;
