@@ -427,6 +427,19 @@ io.on('connection', (socket) => {
     cb && cb({ ok: true });
   });
 
+  // 입찰 액션 사운드 큐(체크/쿼터/하프/다이)를 방 전체에 방송 (게임 상태는 변경하지 않음)
+  socket.on('voiceCue', ({ action }, cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room) return cb && cb({ error: '방을 찾을 수 없습니다.' });
+    const team = findTeamBySocket(room, socket.id);
+    if (!team) return cb && cb({ error: '팀장만 가능합니다.' });
+    if (!['check', 'quarter', 'harp', 'die'].includes(action)) {
+      return cb && cb({ error: '잘못된 액션입니다.' });
+    }
+    io.to(room.code).emit('voiceCue', { teamId: team.id, action });
+    cb && cb({ ok: true });
+  });
+
   socket.on('nextPlayer', (_, cb) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room || socket.id !== room.hostSocketId) return cb && cb({ error: '권한이 없습니다.' });

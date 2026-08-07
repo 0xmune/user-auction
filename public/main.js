@@ -226,6 +226,20 @@ socket.on('state', (state) => {
   applyBgmState(state.bgm);
 });
 
+// 팀별 보이스 큐 (1번팀 다인 / 2번팀 민상 / 3번팀 아라 / 4번팀 하준, 5번째 팀부터는 합성음으로 대체)
+const TEAM_VOICES = ['dain', 'minsang', 'ara', 'hajun'];
+socket.on('voiceCue', ({ teamId, action }) => {
+  const idx = latestState ? latestState.teams.findIndex((t) => t.id === teamId) : -1;
+  const voice = TEAM_VOICES[idx];
+  if (voice) {
+    const audio = new Audio(`audio/${voice}-${action}.mp3`);
+    audio.play().catch(() => {});
+  } else {
+    const fallback = { check: playCheckSound, quarter: playDdadangSound, harp: playHalfSound, die: playDieSound };
+    (fallback[action] || (() => {}))();
+  }
+});
+
 // ---------- POOL MANAGEMENT (host, setup phase) ----------
 $('addPoolBtn').onclick = () => {
   $('addPoolError').textContent = '';
@@ -257,11 +271,15 @@ $('startAuctionBtn').onclick = () => {
 };
 
 // ---------- BIDDING ----------
-function submitBid(amount) {
+function submitBid(amount, cueAction) {
   $('bidError').textContent = '';
   socket.emit('placeBid', { amount }, (res) => {
-    if (res && res.error) $('bidError').textContent = res.error;
-    else $('bidAmount').value = '';
+    if (res && res.error) {
+      $('bidError').textContent = res.error;
+      return;
+    }
+    $('bidAmount').value = '';
+    if (cueAction) socket.emit('voiceCue', { action: cueAction }, () => {});
   });
 }
 
@@ -289,22 +307,25 @@ document.querySelectorAll('#leaderControls .bid-adjust .chip').forEach((btn) => 
   };
 });
 
-// 빠른 입찰: 현재 최고 입찰가에 +1/+10/+100 하여 즉시 입찰 (포커 칩 사운드 재생)
-const QUICK_BID_SOUND = { 1: playCheckSound, 10: playDdadangSound, 100: playHalfSound };
+// 빠른 입찰: 현재 최고 입찰가에 +1/+10/+100 하여 즉시 입찰
+// 성공하면 팀별 보이스 큐를 방 전체에 방송해서 다같이 같은 소리를 듣는다
+const QUICK_BID_ACTION = { 1: 'check', 10: 'quarter', 100: 'harp' };
 document.querySelectorAll('#quickBidRow .chip-quick').forEach((btn) => {
   btn.onclick = () => {
     const cur = latestState && latestState.current ? latestState.current.currentBid : 0;
     const delta = Number(btn.dataset.quick);
-    (QUICK_BID_SOUND[delta] || (() => {}))();
-    submitBid(cur + delta);
+    submitBid(cur + delta, QUICK_BID_ACTION[delta]);
   };
 });
 
 // 입찰 포기 (최고 입찰자가 아닐 때만 가능, 포커의 '다이' 사운드)
 $('foldBidBtn').onclick = () => {
-  playDieSound();
   socket.emit('foldBid', {}, (res) => {
-    if (res && res.error) $('bidError').textContent = res.error;
+    if (res && res.error) {
+      $('bidError').textContent = res.error;
+      return;
+    }
+    socket.emit('voiceCue', { action: 'die' }, () => {});
   });
 };
 
